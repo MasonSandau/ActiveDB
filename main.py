@@ -12,6 +12,7 @@ class ExpandableDatabase:
         self.tables = {}
         self.lock = threading.RLock()
         self.request_times = []
+        self.reorganize_times = []
         self.reorganize_interval = reorganize_interval
         self.load_data()
 
@@ -86,8 +87,23 @@ class ExpandableDatabase:
             return 0
         return max(self.request_times)
 
+    def record_reorganize_time(self, start_time):
+        elapsed_time = time.time() - start_time
+        self.reorganize_times.append(elapsed_time)
+
+    def get_average_reorganize_time(self):
+        if not self.reorganize_times:
+            return 0
+        return sum(self.reorganize_times) / len(self.reorganize_times)
+
+    def get_max_reorganize_time(self):
+        if not self.reorganize_times:
+            return 0
+        return max(self.reorganize_times)
+
     def reorganize_database(self):
         print("Reorganizing database...")
+        start_time = time.time()
         with self.lock:
             for table_name in self.tables:
                 sorted_table = dict(sorted(
@@ -97,6 +113,7 @@ class ExpandableDatabase:
                 ))
                 self.tables[table_name] = sorted_table
         self.save_data()
+        self.record_reorganize_time(start_time)
         print("Database reorganized.")
 
 # Simulate traffic
@@ -147,17 +164,6 @@ def simulate_traffic(db, table_name, num_queries=1000, power_users_ratio=0.75):
     end = time.time()
     print(f"Simulated {num_queries} queries in {end - start:.2f} seconds.")
 
-    #power_users_data = [db.tables[table_name][user]["query_count"] for user in power_users]
-    #general_users_data = [db.tables[table_name][user]["query_count"] for user in user_keys if user not in power_users]
-
-    #print("Power Users Statistics:")
-    #print(f"  Max: {max(power_users_data)}")
-    #print(f"  Avg: {sum(power_users_data) / len(power_users_data):.2f}")
-
-    #print("General Users Statistics:")
-    #print(f"  Max: {max(general_users_data)}")
-    #print(f"  Avg: {sum(general_users_data) / len(general_users_data):.2f}")
-
 if __name__ == "__main__":
     db = ExpandableDatabase()
 
@@ -171,3 +177,5 @@ if __name__ == "__main__":
 
     print(f"Average request time: {db.get_average_request_time():.20f} seconds")
     print(f"Maximum request time: {db.get_max_request_time():.20f} seconds")
+    print(f"Average reorganize time: {db.get_average_reorganize_time():.20f} seconds")
+    print(f"Maximum reorganize time: {db.get_max_reorganize_time():.20f} seconds")
