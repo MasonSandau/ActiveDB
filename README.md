@@ -14,7 +14,6 @@ The idea behind this was that there are "power" users that may log into an appli
 
 # Output
 
-(base) mason@Masons-MacBook-Pro-4 ActiveDB % python user.py
 Starting user generation...
 Batch 0 to 100000 added.
 ...
