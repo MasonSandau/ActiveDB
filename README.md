@@ -7,8 +7,10 @@ The idea behind this was that there are "power" users that may log into an appli
 
 # Query times (1 million entries and 10 million requests) approx 100mb of username/password/query data...
 
-- Average request time: 0.00000087645475864410 seconds
-- Maximum request time: 0.00305366516113281250 seconds //most likely first time requests and queries before python caching...
+- Average request time: 0.00000068342297077179 seconds
+- Maximum request time: 0.00280690193176269531 seconds //most likely first time requests and queries before python caching...
+- Average reorganize time: 3.73611903190612792969 seconds
+- Maximum reorganize time: 3.96744394302368164062 seconds
 
 # Output
 
@@ -30,7 +32,7 @@ Reorganizing database...
 Database reorganized.
 Simulated 10000000 queries in 63.09 seconds.
 Traffic simulation complete!
-Average request time: 0.00000087645475864410 seconds
-Maximum request time: 0.00305366516113281250 seconds
-(base) mason@Masons-MacBook-Pro-4 ActiveDB % 
-
+Average request time: 0.00000068342297077179 seconds
+Maximum request time: 0.00280690193176269531 seconds
+Average reorganize time: 3.73611903190612792969 seconds
+Maximum reorganize time: 3.96744394302368164062 seconds
