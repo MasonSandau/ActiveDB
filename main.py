@@ -5,11 +5,12 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 import random
 import string
+from collections import defaultdict
 
 class ExpandableDatabase:
     def __init__(self, db_file="database.json", reorganize_interval=1000000):
         self.db_file = db_file
-        self.tables = {}
+        self.tables = defaultdict(dict)
         self.lock = threading.RLock()
         self.request_times = []
         self.reorganize_times = []
@@ -20,17 +21,14 @@ class ExpandableDatabase:
         if os.path.exists(self.db_file):
             try:
                 with open(self.db_file, "r") as f:
-                    self.tables = json.load(f)
+                    self.tables.update(json.load(f))
             except json.JSONDecodeError as e:
                 print(f"Error loading data from {self.db_file}: {e}")
-                self.tables = {}
-        else:
-            self.tables = {}
 
     def save_data(self):
         try:
             with self.lock:
-                temp_data = self.tables.copy()
+                temp_data = dict(self.tables)  # Create a copy for saving
             with open(self.db_file, "w") as f:
                 json.dump(temp_data, f, indent=4)
         except Exception as e:
@@ -55,19 +53,16 @@ class ExpandableDatabase:
     def get_row(self, table_name, row_id):
         start_time = time.time()
         with self.lock:
-            if table_name in self.tables and row_id in self.tables[table_name]:
-                self.record_request_time(start_time)
-                return self.tables[table_name][row_id]
+            row = self.tables.get(table_name, {}).get(row_id)
             self.record_request_time(start_time)
-            return {"error": "Row not found."}
+            return row if row else {"error": "Row not found."}
 
     def increment_query_count(self, table_name, row_id):
         start_time = time.time()
         with self.lock:
-            if table_name in self.tables and row_id in self.tables[table_name]:
-                if "query_count" not in self.tables[table_name][row_id]:
-                    self.tables[table_name][row_id]["query_count"] = 0
-                self.tables[table_name][row_id]["query_count"] += 1
+            row = self.tables.get(table_name, {}).get(row_id)
+            if row is not None:
+                row["query_count"] = row.get("query_count", 0) + 1
                 self.record_request_time(start_time)
                 return {"message": f"Query count incremented for row '{row_id}' in table '{table_name}'."}
             self.record_request_time(start_time)
@@ -87,6 +82,20 @@ class ExpandableDatabase:
             return 0
         return max(self.request_times)
 
+    def reorganize_database(self):
+        print("Reorganizing database...")
+        start_time = time.time()
+        with self.lock:
+            for table_name in self.tables:
+                self.tables[table_name] = dict(sorted(
+                    self.tables[table_name].items(),
+                    key=lambda item: item[1].get("query_count", 0),
+                    reverse=True
+                ))
+        self.save_data()
+        self.record_reorganize_time(start_time)
+        print("Database reorganized.")
+
     def record_reorganize_time(self, start_time):
         elapsed_time = time.time() - start_time
         self.reorganize_times.append(elapsed_time)
@@ -101,21 +110,6 @@ class ExpandableDatabase:
             return 0
         return max(self.reorganize_times)
 
-    def reorganize_database(self):
-        print("Reorganizing database...")
-        start_time = time.time()
-        with self.lock:
-            for table_name in self.tables:
-                sorted_table = dict(sorted(
-                    self.tables[table_name].items(),
-                    key=lambda item: item[1].get("query_count", 0),
-                    reverse=True
-                ))
-                self.tables[table_name] = sorted_table
-        self.save_data()
-        self.record_reorganize_time(start_time)
-        print("Database reorganized.")
-
 # Simulate traffic
 
 def generate_users(db, table_name, num_users=1_000_000, batch_size=10_000):
@@ -123,7 +117,7 @@ def generate_users(db, table_name, num_users=1_000_000, batch_size=10_000):
 
     def create_user(index):
         username = f"user_{index}"
-        password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+        password = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
         db.add_row(table_name, username, {"password": password, "query_count": 0})
 
     start = time.time()
@@ -153,11 +147,7 @@ def simulate_traffic(db, table_name, num_queries=1000, power_users_ratio=0.75):
             print(f"Reorganizing database after {i} queries...")
             db.reorganize_database()
 
-        if random.random() < power_users_ratio:
-            username = random.choice(power_users)
-        else:
-            username = random.choice(user_keys)
-
+        username = random.choice(power_users) if random.random() < power_users_ratio else random.choice(user_keys)
         db.increment_query_count(table_name, username)
 
     db.save_data()
@@ -169,7 +159,7 @@ if __name__ == "__main__":
 
     print("Starting user generation...")
     generate_users(db, table_name="users", num_users=1000000, batch_size=100000)
-    print("User generation complete!")
+    print("User  generation complete!")
 
     print("Starting traffic simulation...")
     simulate_traffic(db, table_name="users", num_queries=10000000)
