@@ -7,10 +7,10 @@ The idea behind this was that there are "power" users that may log into an appli
 
 # Query times (1 million entries and 10 million requests) approx 100mb of username/password/query data on m2 macbook pro
 
-- Average request time: 0.00000068342297077179 seconds
-- Maximum request time: 0.00280690193176269531 seconds //most likely first time requests and queries before python caching...
-- Average reorganize time: 3.73611903190612792969 seconds
-- Maximum reorganize time: 3.96744394302368164062 seconds
+- Average request time: 0.00000058488514423370 seconds
+- Maximum request time: 0.00018477439880371094 seconds
+- Average reorganize time: 3.77486642201741551261 seconds
+- Maximum reorganize time: 3.95432591438293457031 seconds
 
 # Output
 
